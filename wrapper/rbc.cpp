@@ -46,7 +46,29 @@ PYBIND11_MODULE( rbc, m ){
     .def("to_string", &CCondition::to_string)
     .def("__copy__", []( const CCondition & self ){ return CCondition( self ); })
     .def("__str__", &CCondition::to_string)
-    .def("__eq__", &CCondition::operator==);
+    .def("__eq__", &CCondition::operator==)
+    .def(py::pickle(
+      []( const CCondition & cond ){ // __getstate__
+        return py::make_tuple(
+          cond.get_feature(),
+          cond.get_index(),
+          cond.get_operator(),
+          cond.get_values() 
+        );
+      },
+      []( py::tuple t ){ // __setstate__
+        if( t.size() != 4 )
+          throw std::runtime_error("Invalid condition tuple state!");
+        CCondition cond(
+          t[0].cast<std::string>(),
+          t[1].cast<std::size_t>(),
+          t[2].cast<std::string>(),
+          t[3].cast<std::vector<double>>()
+        );
+
+        return cond;
+      })
+    ); 
 
   py::class_<CRule>( m, "CRule" )
     .def(py::init<>())
@@ -65,7 +87,31 @@ PYBIND11_MODULE( rbc, m ){
     .def("__setitem__", [](CRule & self, std::size_t i, const CCondition & value){ self[i] = value; })
     .def("__getitem__", static_cast<const CCondition & (CRule::*)(std::size_t) const>(&CRule::operator[]))
     .def("__copy__", []( const CRule & self ){ return CRule( self ); })
-    .def("__len__", &CRule::size);
+    .def("__len__", &CRule::size)
+    .def(py::pickle(
+      []( const CRule & rule ){ // __getstate__
+        return py::make_tuple(
+          rule.__pickle_get_cond(),
+          rule.__pickle_get_learn_order(),
+          rule.__pickle_get_class(),
+          rule.__pickle_get_predict(),
+          rule.__pickle_get_show_class()
+        );
+      },
+      []( py::tuple t ){ // __setstate__
+        if( t.size() != 5 )
+          throw std::runtime_error("Invalid rule tuple state!");
+
+        CRule rule;
+        rule.__pickle_set_cond( t[0].cast<std::map<std::size_t,CCondition>>() );
+        rule.__pickle_set_learn_order( t[1].cast<std::list<std::size_t>>() );
+        rule.__pickle_set_class( t[2].cast<std::size_t>() );
+        rule.__pickle_set_predict( t[3].cast<bool>() );
+        rule.__pickle_set_show_class( t[4].cast<bool>() );
+
+        return rule;
+      })
+    );
 
   py::class_<CRuleset>( m, "CRuleset" )
     .def(py::init<>())
@@ -80,7 +126,23 @@ PYBIND11_MODULE( rbc, m ){
     .def("__setitem__", [](CRuleset & self, std::size_t i, const CRule & value){ self[i] = value; })
     .def("__getitem__", static_cast<const CRule & (CRuleset::*)(std::size_t) const>(&CRuleset::operator[]))
     .def("__copy__", []( const CRuleset & self ){ return CRuleset( self ); })
-    .def("__len__", &CRuleset::size);
+    .def("__len__", &CRuleset::size)
+    .def(py::pickle(
+      []( const CRuleset & ruleset ){ // __getstate__
+        return py::make_tuple(
+          ruleset.__pickle_get_rules()
+        );
+      },
+      []( py::tuple t ){
+        if( t.size() != 1 )
+          throw std::runtime_error("Invalid rule tuple state!");
+
+        CRuleset ruleset;
+        ruleset.__pickle_set_rules( t[0].cast<std::vector<CRule>>() );
+
+        return ruleset;
+      })
+    );
 
   py::class_<CRuleLearner, PyCRuleLearner<>>( m, "CRuleLearner" )
     .def(py::init<>())
