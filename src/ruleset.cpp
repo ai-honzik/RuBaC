@@ -27,7 +27,10 @@ CCondition::CCondition( const std::string & feature, std::size_t index,
                         const std::string & op, const std::vector<double> & vals ):
     m_f( feature ), m_ind( index ){
 
-  if( op != "range" && op != "in" )
+  if( ! vals.size() )
+    throw std::invalid_argument("Input vector is empty!");
+
+  if( vals.size() != 1 && op != "range" && op != "in" )
     throw std::invalid_argument("Wrong operator!");
 
   m_op = op;
@@ -41,12 +44,12 @@ CCondition::CCondition( const std::string & feature, std::size_t index,
   }
   else if( op == "in" ){
     
-    if( vals.size() == 0 )
-      throw std::length_error("Invalid vector length!");
-     
     for( const auto & x: vals )
       m_cat_vals.insert( x ); 
   }
+  // for operators <= and >=
+  else
+    m_con_vals = vals;
 }
 
 CCondition::CCondition( const CCondition & src ){
