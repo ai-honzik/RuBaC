@@ -120,7 +120,7 @@ class CCondition{
 
   private:
     std::string m_f;                // feature
-    std::size_t m_ind;                 // index
+    std::size_t m_ind;              // index
     std::string m_op;               // operator
     std::vector<double> m_con_vals; // continuous values
     std::set<double> m_cat_vals;    // categorical values
@@ -197,6 +197,19 @@ class CRule{
     friend std::ostream & operator<<( std::ostream & out,
                                       const CRule & src );
 
+    // Python Pickle support Methods
+    std::map<std::size_t,CCondition> __pickle_get_cond( void ) const;
+    std::list<std::size_t> __pickle_get_learn_order( void ) const;
+    std::size_t __pickle_get_class( void ) const;
+    bool __pickle_get_predict( void ) const;
+    bool __pickle_get_show_class( void ) const;
+
+    void __pickle_set_cond( const std::map<std::size_t,CCondition> & in );
+    void __pickle_set_learn_order( const std::list<std::size_t> & in );
+    void __pickle_set_class( std::size_t in );
+    void __pickle_set_predict( bool in );
+    void __pickle_set_show_class( bool in );
+
   private:
     std::map<std::size_t,CCondition> m_cond; // conditions by indices
     std::list<std::size_t> m_learn_order; // indices in the order in which
@@ -230,6 +243,10 @@ class CRuleset{
     friend std::ostream & operator<<( std::ostream & out,
                                       const CRuleset & src );
 
+    // Python Pickle support Methods
+    std::vector<CRule> __pickle_get_rules( void ) const;
+    
+    void __pickle_set_rules( const std::vector<CRule> & in );
     
   private:
     std::vector<CRule> m_rules;

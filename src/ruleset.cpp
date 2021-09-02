@@ -535,6 +535,46 @@ std::ostream & operator<<( std::ostream & out, const CRule & src ){
   return out;
 }
 
+std::map<std::size_t,CCondition> CRule::__pickle_get_cond( void ) const{
+  return m_cond;
+}
+
+std::list<std::size_t> CRule::__pickle_get_learn_order( void ) const{
+  return m_learn_order;
+}
+
+std::size_t CRule::__pickle_get_class( void ) const{
+  return m_class;
+}
+
+bool CRule::__pickle_get_predict( void ) const{
+  return m_predict;
+}
+
+bool CRule::__pickle_get_show_class( void ) const{
+  return m_show_class;
+}
+
+void CRule::__pickle_set_cond( const std::map<std::size_t,CCondition> & in ){
+  m_cond = in;
+}
+
+void CRule::__pickle_set_learn_order( const std::list<std::size_t> & in ){
+  m_learn_order = in;
+}
+
+void CRule::__pickle_set_class( std::size_t in ){
+  m_class = in;
+}
+
+void CRule::__pickle_set_predict( bool in ){
+  m_predict = in;
+}
+
+void CRule::__pickle_set_show_class( bool in ){
+  m_show_class = in;
+}
+
 CRuleset::CRuleset( const CRuleset & src ):
     m_rules( src.m_rules ){
 }
@@ -626,6 +666,14 @@ std::vector<std::size_t> CRuleset::not_covered_indices(
 std::ostream & operator<<( std::ostream & out, const CRuleset & src ){
   out << src.to_string();
   return out;
+}
+
+std::vector<CRule> CRuleset::__pickle_get_rules( void ) const{
+  return m_rules; 
+}
+
+void CRuleset::__pickle_set_rules( const std::vector<CRule> & in ){
+  m_rules = in;
 }
 
 #endif /*__rulesetcpp__*/
