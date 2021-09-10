@@ -99,6 +99,18 @@ class CRuleLearner{
                                      const std::vector<std::size_t> & y_true,
                                      std::size_t positive_class,
                                      std::size_t conditions_count ) const;
+    double total_description_length( const std::vector<std::vector<double>> & X,
+                                     const CRuleset & new_ruleset,
+                                     const CRuleset & old_ruleset,
+                                     std::size_t rule_index,
+                                     const std::vector<std::size_t> & pos,
+                                     const std::vector<std::size_t> & neg,
+                                     std::size_t tn, std::size_t fp,
+                                     std::size_t fn, std::size_t tp,
+                                     std::size_t & tn_r, std::size_t & fp_r,
+                                     std::size_t & fn_r, std::size_t & tp_r,
+                                     double RDL, double & RDL_r,
+                                     std::size_t conditions_count ) const;
     double rule_bits( const CRule & rule, std::size_t conditions_count ) const;
     double exception_bits( const CRuleset & ruleset,
                            const std::vector<std::vector<double>> & X,
@@ -107,6 +119,10 @@ class CRuleLearner{
     double exception_bits( std::size_t tn, std::size_t fp,
                            std::size_t fn, std::size_t tp ) const;
     std::size_t unique_conditions( const std::vector<std::vector<double>> & X ) const;
+    std::size_t ruleset_coverage_diff( const std::vector<std::vector<double>> & X, 
+                                       const CRuleset & ruleset,
+                                       const std::vector<std::size_t> & covered_a,
+                                       const std::vector<std::size_t> & covered_b ) const;
 
   protected:
     double m_split_ratio; // split ratio for current learner
@@ -146,8 +162,8 @@ class CRIPPER : public CRuleLearner{
              const std::string & pruning_metric="RIPPER_default" );
     CRuleset IREP_star( const std::vector<std::vector<double>> & X,
                         const std::vector<std::size_t> & Y,
-                        const std::vector<std::size_t> pos,
-                        const std::vector<std::size_t> neg,
+                        const std::vector<std::size_t> & pos,
+                        const std::vector<std::size_t> & neg,
                         const std::vector<std::string> & feature_names,
                         std::size_t positive_class,
                         const CRuleset & input_ruleset );
@@ -157,11 +173,9 @@ class CRIPPER : public CRuleLearner{
                           std::size_t positive_class );
     CRuleset optimise_ruleset( const CRuleset & input_ruleset,
                                const std::vector<std::vector<double>> & X,
-                               const std::vector<std::size_t> & Y,
                                const std::vector<std::string> & feature_names,
                                const std::vector<std::size_t> & pos,
-                               const std::vector<std::size_t> & neg,
-                               std::size_t positive_class );
+                               const std::vector<std::size_t> & neg );
     CRule optimise_prune( const CRuleset & input_ruleset,
                           std::size_t index,
                           const std::vector<std::vector<double>> & X,

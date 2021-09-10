@@ -429,6 +429,71 @@ double CRuleLearner::total_description_length( const CRuleset & ruleset,
   return DL;
 }
 
+double CRuleLearner::total_description_length( const std::vector<std::vector<double>> & X,
+                                               const CRuleset & new_ruleset,
+                                               const CRuleset & old_ruleset,
+                                               std::size_t rule_index,
+                                               const std::vector<std::size_t> & pos,
+                                               const std::vector<std::size_t> & neg,
+                                               std::size_t tn, std::size_t fp,
+                                               std::size_t fn, std::size_t tp,
+                                               std::size_t & tn_r, std::size_t & fp_r,
+                                               std::size_t & fn_r, std::size_t & tp_r,
+                                               double RDL, double & RDL_r,
+                                               std::size_t conditions_count ) const{
+  CRule r_new = new_ruleset[rule_index];
+  CRule r_old = old_ruleset[rule_index]; 
+
+  auto pos_covered_old = r_old.covered_indices( X, pos );
+  auto neg_covered_old = r_old.covered_indices( X, neg );
+  auto pos_covered_new = r_new.covered_indices( X, pos );
+  auto neg_covered_new = r_new.covered_indices( X, neg );
+
+  // init replacement vars
+  tn_r = tn;
+  fp_r = fp;
+  fn_r = fn;
+  tp_r = tp;
+
+  std::size_t diff;
+  // TP and FN change
+  // if `| old_cov \ new_cov | > 0` then
+  //   diff = new_ruleset.cov( old_cov \ new_cov )
+  diff = ruleset_coverage_diff( X, new_ruleset, pos_covered_old, pos_covered_new );
+  tp_r -= diff;
+  fn_r += diff;
+
+  // if `| new_cov \ old_cov | > 0` then
+  //   diff = old_ruleset.cov( new_cov \ old_cov )
+  diff = ruleset_coverage_diff( X, old_ruleset, pos_covered_new, pos_covered_old );
+  tp_r += diff;
+  fn_r -= diff;  
+
+  // TN and FP change
+  // if `| old_cov \ new_cov | > 0` then
+  //   diff = new_ruleset.cov( old_cov \ new_cov )
+  diff = ruleset_coverage_diff( X, new_ruleset, neg_covered_old, neg_covered_new );
+  fp_r -= diff;
+  tn_r += diff;
+
+  // if `| new_cov \ old_cov | > 0` then
+  //   diff = old_ruleset.cov( new_cov \ old_cov )
+  diff = ruleset_coverage_diff( X, old_ruleset, neg_covered_new, neg_covered_old );
+  fp_r += diff;
+  tn_r -= diff; 
+
+  // find out how many bits had replaced rule and new rule
+  double rule_bits_old = rule_bits( old_ruleset[rule_index], conditions_count );
+  double rule_bits_new = rule_bits( new_ruleset[rule_index], conditions_count );
+  RDL_r = RDL - rule_bits_old + rule_bits_new;
+
+  // calculate exception bits with new vars
+  double exceptions = exception_bits( tn_r, fp_r, fn_r, tp_r ); 
+
+  // and finally return the result
+  return RDL_r + exceptions;
+}
+
 double CRuleLearner::rule_bits( const CRule & rule, std::size_t conditions_count ) const{
 
   std::size_t k = rule.size();
@@ -469,6 +534,26 @@ std::size_t CRuleLearner::unique_conditions( const std::vector<std::vector<doubl
     count += unique( row ).size();
 
   return count; 
+}
+
+std::size_t CRuleLearner::ruleset_coverage_diff(
+  const std::vector<std::vector<double>> & X, 
+  const CRuleset & ruleset,
+  const std::vector<std::size_t> & covered_a,
+  const std::vector<std::size_t> & covered_b
+) const{
+  std::vector<std::size_t> diff;
+
+  std::set_difference( covered_a.begin(), covered_a.end(),
+                       covered_b.begin(), covered_b.end(),
+                       std::inserter( diff, diff.begin() ) );
+  // no difference
+  if( diff.empty() )
+    return 0;
+  
+  auto not_covered_rest = ruleset.not_covered_indices( X, diff );
+  return not_covered_rest.size();
+   
 }
 
 CIREP::CIREP( void ):
@@ -563,8 +648,8 @@ CRIPPER::CRIPPER( double split_ratio, std::size_t random_state,
 
 CRuleset CRIPPER::IREP_star( const std::vector<std::vector<double>> & X,
                              const std::vector<std::size_t> & Y,
-                             const std::vector<std::size_t> pos,
-                             const std::vector<std::size_t> neg,
+                             const std::vector<std::size_t> & pos,
+                             const std::vector<std::size_t> & neg,
                              const std::vector<std::string> & feature_names,
                              std::size_t positive_class,
                              const CRuleset & input_ruleset ){
@@ -685,8 +770,7 @@ CRuleset CRIPPER::fit( const std::vector<std::vector<double>> & X,
       __logger.log( "-- Optimisation #" + std::to_string( i + 1 ) );
     #endif
     // optimise_ruleset
-    ruleset = optimise_ruleset( ruleset, X, Y, feature_names, pos, neg,
-                                positive_class );
+    ruleset = optimise_ruleset( ruleset, X, feature_names, pos, neg );
     auto pos_remaining = ruleset.not_covered_indices( X, pos );
     auto neg_remaining = ruleset.not_covered_indices( X, neg );
     // cover remaining samples
@@ -700,11 +784,9 @@ CRuleset CRIPPER::fit( const std::vector<std::vector<double>> & X,
 
 CRuleset CRIPPER::optimise_ruleset( const CRuleset & input_ruleset,
                                     const std::vector<std::vector<double>> & X,
-                                    const std::vector<std::size_t> & Y,
                                     const std::vector<std::string> & feature_names,
                                     const std::vector<std::size_t> & pos,
-                                    const std::vector<std::size_t> & neg,
-                                    std::size_t positive_class ){
+                                    const std::vector<std::size_t> & neg ){
 
   std::vector<std::size_t> pos_copy = pos;
   std::vector<std::size_t> neg_copy = neg;
@@ -721,12 +803,23 @@ CRuleset CRIPPER::optimise_ruleset( const CRuleset & input_ruleset,
   for( std::size_t i = 0; i < ruleset.size(); ++i )
     RDL += rule_bits( ruleset[i], conditions_count );
 
-  double exceptions = exception_bits( tn, fp, fn, tp );
-  // TODO
 
   for( std::size_t i = 0; i < input_ruleset.size(); ++i ){
 
+    double exceptions = exception_bits( tn, fp, fn, tp );
     double best_score = std::numeric_limits<double>::max();
+    // replacement for tn, fp, fn and tp
+    std::size_t tn_r, fp_r, fn_r, tp_r;
+    // best score for tn, fp, fn and tp
+    std::size_t tn_best, fp_best, fn_best, tp_best;
+    tn_best = tn;
+    fp_best = fp;
+    fn_best = fn;
+    tp_best = tp;
+    // replacement for RDL and best RDL score
+    double RDL_r, RDL_best;
+    RDL_best = RDL;    
+
     CRuleset best_ruleset( ruleset );
 
     data_split( pos_copy, pos_grow, pos_prune );
@@ -738,11 +831,23 @@ CRuleset CRIPPER::optimise_ruleset( const CRuleset & input_ruleset,
     replacement_ruleset[i] = replacement;
     replacement_ruleset[i] = optimise_prune( replacement_ruleset, i, X,
                                              pos_prune, neg_prune );
-    double replacement_TDL = total_description_length( replacement_ruleset, X, Y,
-                                                       positive_class, conditions_count );
+    double replacement_TDL = total_description_length(
+                               X, replacement_ruleset, ruleset, i,
+                               pos_copy, neg_copy,
+                               tn, fp, fn, tp,
+                               tn_r, fp_r, fn_r, tp_r,
+                               RDL, RDL_r,
+                               conditions_count
+                             );
+
     if( replacement_TDL < best_score ){
       best_score = replacement_TDL;
       best_ruleset = replacement_ruleset;
+      tn_best = tn_r;
+      fp_best = fp_r;
+      fn_best = fn_r;
+      tp_best = tp_r;
+      RDL_best = RDL_r;
     }
 
     // revision
@@ -752,16 +857,27 @@ CRuleset CRIPPER::optimise_ruleset( const CRuleset & input_ruleset,
     revision_ruleset[i] = revision;
     revision_ruleset[i] = optimise_prune( revision_ruleset, i, X,
                                           pos_prune, neg_prune );
-    double revision_TDL = total_description_length( revision_ruleset, X, Y,
-                                                    positive_class, conditions_count );
-    
+    double revision_TDL = total_description_length(
+                            X, revision_ruleset, ruleset, i,
+                            pos_copy, neg_copy,
+                            tn, fp, fn, tp,
+                            tn_r, fp_r, fn_r, tp_r,
+                            RDL, RDL_r,
+                            conditions_count
+                          );
+
     if( revision_TDL < best_score ){
       best_score = revision_TDL;
       best_ruleset = revision_ruleset;
+      tn_best = tn_r;
+      fp_best = fp_r;
+      fn_best = fn_r;
+      tp_best = tp_r;
+      RDL_best = RDL_r;
     }
 
-    double original_TDL = total_description_length( ruleset, X, Y, positive_class,
-                                                    conditions_count );
+    double original_TDL = exceptions + RDL;
+
     #ifdef __verbose__
       __logger.log( "-- TDL Scores ... Replacement: " + std::to_string( replacement_TDL ) +
                     ", Revision: " + std::to_string( revision_TDL ) +
@@ -773,6 +889,11 @@ CRuleset CRIPPER::optimise_ruleset( const CRuleset & input_ruleset,
         __logger.log( "-- Changing rule in ruleset!" );
       #endif
       ruleset = best_ruleset;
+      tn = tn_best;
+      fp = fp_best;
+      fn = fn_best;
+      tp = tp_best;
+      RDL = RDL_best;
     }
 
     pos_copy = ruleset[i].not_covered_indices( X, pos_copy );
