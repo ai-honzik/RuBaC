@@ -135,7 +135,7 @@ PYBIND11_MODULE( rbc, m ){
       },
       []( py::tuple t ){
         if( t.size() != 1 )
-          throw std::runtime_error("Invalid rule tuple state!");
+          throw std::runtime_error("Invalid ruleset tuple state!");
 
         CRuleset ruleset;
         ruleset.__pickle_set_rules( t[0].cast<std::vector<CRule>>() );
