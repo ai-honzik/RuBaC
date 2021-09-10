@@ -910,12 +910,17 @@ CRule CRIPPER::optimise_prune( const CRuleset & input_ruleset,
                                const std::vector<std::size_t> & pos_prune,
                                const std::vector<std::size_t> & neg_prune ){
   std::size_t tn, fp, fn, tp;
+  // tn, fp, fn and tp replacements
+  std::size_t tn_r, fp_r, fn_r, tp_r;
   confusion_matrix( input_ruleset, index, X, pos_prune, neg_prune,
                     tn, fp, fn, tp );
   double best_val = ( tp + tn ) / ( tp + tn + fp + fn );
 
   CRule old_rule( input_ruleset[index] );
   CRule rule( old_rule );
+
+  auto pos_covered_old = old_rule.covered_indices( X, pos_prune );
+  auto neg_covered_old = old_rule.covered_indices( X, neg_prune );
 
   for( auto it = old_rule.o_crbegin(); it != old_rule.o_crend(); ++it ){
 
@@ -924,9 +929,38 @@ CRule CRIPPER::optimise_prune( const CRuleset & input_ruleset,
     new_rule.pop_back();
     ruleset[index] = new_rule;
 
-    confusion_matrix( ruleset, index, X, pos_prune, neg_prune,
-                      tn, fp, fn, tp );
-    double new_val = ( tp + tn ) / ( tp + tn + fp + fn );
+    auto pos_covered_new = new_rule.covered_indices( X, pos_prune );
+    auto neg_covered_new = new_rule.covered_indices( X, neg_prune );
+    tn_r = tn;
+    fp_r = fp;
+    fn_r = fn;
+    tp_r = tp;
+
+    std::size_t diff;
+    diff = ruleset_coverage_diff( X, ruleset, pos_covered_old, pos_covered_new );
+    tp_r -= diff;
+    fn_r += diff;
+
+    // if `| new_cov \ old_cov | > 0` then
+    //   diff = old_ruleset.cov( new_cov \ old_cov )
+    diff = ruleset_coverage_diff( X, input_ruleset, pos_covered_new, pos_covered_old );
+    tp_r += diff;
+    fn_r -= diff;  
+
+    // TN and FP change
+    // if `| old_cov \ new_cov | > 0` then
+    //   diff = new_ruleset.cov( old_cov \ new_cov )
+    diff = ruleset_coverage_diff( X, ruleset, neg_covered_old, neg_covered_new );
+    fp_r -= diff;
+    tn_r += diff;
+
+    // if `| new_cov \ old_cov | > 0` then
+    //   diff = old_ruleset.cov( new_cov \ old_cov )
+    diff = ruleset_coverage_diff( X, input_ruleset, neg_covered_new, neg_covered_old );
+    fp_r += diff;
+    tn_r -= diff; 
+
+    double new_val = ( tp_r + tn_r ) / ( tp_r + tn_r + fp_r + fn_r );
     #ifdef __verbose__
       __logger.log( "---- Old acc: " + std::to_string( best_val ) +
                     ", new acc: " + std::to_string( new_val ) );
@@ -934,6 +968,10 @@ CRule CRIPPER::optimise_prune( const CRuleset & input_ruleset,
     if( new_rule.size() && new_val > best_val ){
       best_val = new_val;
       rule = new_rule;
+      tn = tn_r;
+      fp = fp_r;
+      fn = fn_r;
+      tp = tp_r;
     }
     else
       break;
