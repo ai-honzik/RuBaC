@@ -25,6 +25,7 @@ class CRuleLearner{
     CRuleLearner( void );
     CRuleLearner( double split_ratio, std::size_t random_state, 
                   std::size_t categorical_max, std::size_t difference,
+                  std::size_t rule_max_size, std::size_t ruleset_max_size,
                   bool prune_rules, std::size_t n_threads,
                   const std::string & pruning_metric );
     static void confusion_matrix( const std::vector<std::size_t> & y_true,
@@ -129,6 +130,8 @@ class CRuleLearner{
     std::size_t m_random_state; // random state for init. of m_rand_gen
     std::size_t m_categorical_max; // maximum number of unique vals in a feature
     std::size_t m_difference;
+    std::size_t m_rule_max_size;
+    std::size_t m_ruleset_max_size;
     bool m_prune_rules; // should rules be pruned?
     std::size_t m_n_threads;
     std::function<double( const std::vector<std::vector<double>> & X,
@@ -143,8 +146,10 @@ class CIREP : public CRuleLearner{
   public:
     CIREP( void );
     CIREP( double split_ratio, std::size_t random_state=std::random_device()(), 
-           std::size_t categorical_max=0, bool prune_rules=true,
-           std::size_t n_threads=1,
+           std::size_t categorical_max=0,
+           std::size_t rule_max_size=std::numeric_limits<std::size_t>::max(),
+           std::size_t ruleset_max_size=std::numeric_limits<std::size_t>::max(),
+           bool prune_rules=true, std::size_t n_threads=1,
            const std::string & pruning_metric="IREP_default" );
     virtual CRuleset fit( const std::vector<std::vector<double>> & X,
                           const std::vector<std::size_t> & Y,
@@ -158,6 +163,8 @@ class CRIPPER : public CRuleLearner{
     CRIPPER( void );
     CRIPPER( double split_ratio, std::size_t random_state=std::random_device()(),
              std::size_t categorical_max=0, std::size_t difference=64,
+             std::size_t rule_max_size=std::numeric_limits<std::size_t>::max(),
+             std::size_t ruleset_max_size=std::numeric_limits<std::size_t>::max(),
              std::size_t k=2, bool prune_rules=true, std::size_t n_threads=1, 
              const std::string & pruning_metric="RIPPER_default" );
     CRuleset IREP_star( const std::vector<std::vector<double>> & X,
@@ -197,6 +204,8 @@ class CCompetitor : public CRuleLearner{
     CCompetitor( void );
     CCompetitor( double split_ratio, std::size_t random_state=std::random_device()(),
                  std::size_t categorical_max=0, std::size_t difference=64,
+                 std::size_t rule_max_size=std::numeric_limits<std::size_t>::max(),
+                 std::size_t ruleset_max_size=std::numeric_limits<std::size_t>::max(),
                  bool prune_rules=true, std::size_t n_threads=1,
                  const std::string & pruning_metric="RIPPER_default" );
     virtual CRuleset fit( const std::vector<std::vector<double>> & X,

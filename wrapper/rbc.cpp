@@ -146,7 +146,8 @@ PYBIND11_MODULE( rbc, m ){
 
   py::class_<CRuleLearner, PyCRuleLearner<>>( m, "CRuleLearner" )
     .def(py::init<>())
-    .def(py::init<double, std::size_t, std::size_t, std::size_t, bool, std::size_t, const std::string &>())
+    .def(py::init<double, std::size_t, std::size_t, std::size_t, std::size_t, std::size_t,
+                  bool, std::size_t, const std::string &>())
     // references won't get written to Python, but we can use sklearn there
     //.def_static("confusion_matrix", &CRuleLearner::confusion_matrix )
     .def_static("measure_accuracy", static_cast<double (*)(const std::vector<std::size_t> &, const std::vector<std::size_t> &)>(&CRuleLearner::measure_accuracy))
@@ -182,24 +183,33 @@ PYBIND11_MODULE( rbc, m ){
 
   py::class_<CIREP, CRuleLearner, PyCRuleLearner<CIREP>>( m, "CIREP" )
     .def(py::init<>())
-    .def(py::init<double, std::size_t, std::size_t, bool, std::size_t, const std::string &>(),
+    .def(py::init<double, std::size_t, std::size_t, std::size_t, std::size_t,
+                  bool, std::size_t, const std::string &>(),
          py::arg("split_ratio") = (double)2/3, py::arg("random_state") = std::random_device()(), py::arg("categorical_max") = 0,
+         py::arg("rule_size") = std::numeric_limits<std::size_t>::max(),
+         py::arg("ruleset_size") = std::numeric_limits<std::size_t>::max(),
          py::arg("prune_rules") = true, py::arg("n_threads") = 1, py::arg("pruning_metric") = "IREP_default" )
     .def("fit", &CIREP::fit);
 
   py::class_<CRIPPER, CRuleLearner, PyCRuleLearner<CRIPPER>>( m, "CRIPPER" )
     .def(py::init<>())
-    .def(py::init<double, std::size_t, std::size_t, std::size_t, std::size_t, bool, std::size_t, const std::string &>(),
+    .def(py::init<double, std::size_t, std::size_t, std::size_t, std::size_t, std::size_t,
+                  std::size_t, bool, std::size_t, const std::string &>(),
          py::arg("split_ratio") = (double)2/3, py::arg("random_state") = std::random_device()(), py::arg("categorical_max") = 0,
-         py::arg("difference") = 64, py::arg("k") = 2, py::arg("prune_rules") = true, py::arg("n_threads") = 1,
+         py::arg("difference") = 64, py::arg("rule_size") = std::numeric_limits<std::size_t>::max(),
+         py::arg("ruleset_size") = std::numeric_limits<std::size_t>::max(),
+         py::arg("k") = 2, py::arg("prune_rules") = true, py::arg("n_threads") = 1,
          py::arg("pruning_metric") = "RIPPER_default" )
     .def("fit", &CRIPPER::fit)
     .def("optimise_ruleset", &CRIPPER::optimise_ruleset);
 
   py::class_<CCompetitor, CRuleLearner, PyCRuleLearner<CCompetitor>>( m, "CCompetitor" )
     .def(py::init<>())
-    .def(py::init<double, std::size_t, std::size_t, std::size_t, bool, std::size_t, const std::string &>(),
+    .def(py::init<double, std::size_t, std::size_t, std::size_t, std::size_t, std::size_t,
+                  bool, std::size_t, const std::string &>(),
          py::arg("split_ratio") = (double)2/3, py::arg("random_state") = std::random_device()(), py::arg("categorical_max") = 0,
+         py::arg("rule_size") = std::numeric_limits<std::size_t>::max(),
+         py::arg("ruleset_size") = std::numeric_limits<std::size_t>::max(),
          py::arg("difference") = 64, py::arg("prune_rules") = true, py::arg("n_threads") = 1,
          py::arg("pruning_metric") = "RIPPER_default" )
     .def("fit", &CCompetitor::fit);

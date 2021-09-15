@@ -5,6 +5,8 @@
 
 CRuleLearner::CRuleLearner( void ):
     m_split_ratio( 2./3 ), m_categorical_max( 0 ), m_difference( 64 ),
+    m_rule_max_size( std::numeric_limits<std::size_t>::max() ),
+    m_ruleset_max_size( std::numeric_limits<std::size_t>::max() ),
     m_prune_rules( true ), m_n_threads( 1 ){
 
   std::random_device rand_dev;
@@ -15,10 +17,13 @@ CRuleLearner::CRuleLearner( void ):
 
 CRuleLearner::CRuleLearner( double split_ratio, std::size_t random_state,
                             std::size_t categorical_max, std::size_t difference,
+                            std::size_t rule_max_size,
+                            std::size_t ruleset_max_size,
                             bool prune_rules, std::size_t n_threads,
                             const std::string & pruning_metric ):
     m_split_ratio( split_ratio ), m_random_state( random_state ),
     m_categorical_max( categorical_max ), m_difference( difference ),
+    m_rule_max_size( rule_max_size ), m_ruleset_max_size( ruleset_max_size ),
     m_prune_rules( prune_rules ), m_n_threads( n_threads ),
     m_rand_gen( random_state ){
   set_pruning_metric( pruning_metric );
@@ -169,7 +174,7 @@ CRule CRuleLearner::grow_rule( const std::vector<std::vector<double>> & X,
     neg_copy = rule.covered_indices( X, neg_grow );
   }
 
-  while( ! neg_copy.empty() ){
+  while( ! neg_copy.empty() && rule.size() < m_rule_max_size ){
 
     CRule old_rule( rule );
     CCondition * cond = find_literal( X, feature_names, pos_copy, neg_copy,
@@ -562,11 +567,13 @@ CIREP::CIREP( void ):
 }
 
 CIREP::CIREP( double split_ratio, std::size_t random_state, 
-              std::size_t categorical_max, bool prune_rules,
+              std::size_t categorical_max, std::size_t rule_max_size,
+              std::size_t ruleset_max_size, bool prune_rules,
               std::size_t n_threads,
               const std::string & pruning_metric ):
     CRuleLearner( split_ratio, random_state, categorical_max,
-                  64, prune_rules, n_threads, pruning_metric ){
+                  64, rule_max_size, ruleset_max_size,
+                  prune_rules, n_threads, pruning_metric ){
 }
 
 CRuleset CIREP::fit( const std::vector<std::vector<double>> & X,
@@ -589,7 +596,7 @@ CRuleset CIREP::fit( const std::vector<std::vector<double>> & X,
   std::vector<std::size_t> pos_grow,pos_prune;
   std::vector<std::size_t> neg_grow,neg_prune;
 
-  while( ! pos.empty() ){    
+  while( ! pos.empty() && ruleset.size() < m_ruleset_max_size ){    
 
     #ifdef __verbose__
       __logger.log( "Pos: " + std::to_string( pos.size() ) + ", Neg: " +
@@ -640,10 +647,12 @@ CRIPPER::CRIPPER( void ):
 
 CRIPPER::CRIPPER( double split_ratio, std::size_t random_state, 
                   std::size_t categorical_max, std::size_t difference,
+                  std::size_t rule_max_size, std::size_t ruleset_max_size,
                   std::size_t k, bool prune_rules, std::size_t n_threads,
                   const std::string & pruning_metric ):
     CRuleLearner( split_ratio, random_state, categorical_max,
-                  difference, prune_rules, n_threads, pruning_metric ), m_k( k ){
+                  difference, rule_max_size, ruleset_max_size,
+                  prune_rules, n_threads, pruning_metric ), m_k( k ){
 }
 
 CRuleset CRIPPER::IREP_star( const std::vector<std::vector<double>> & X,
@@ -681,7 +690,7 @@ CRuleset CRIPPER::IREP_star( const std::vector<std::vector<double>> & X,
   double exceptions = exception_bits( tn, fp, fn, tp );
   RDL -= exceptions;
 
-  while( ! pos_copy.empty() ){
+  while( ! pos_copy.empty() && ruleset.size() < m_ruleset_max_size ){
 
     #ifdef __verbose__
       __logger.log( "Pos: " + std::to_string( pos_copy.size() ) + ", Neg: " +
@@ -1009,9 +1018,11 @@ CCompetitor::CCompetitor( void ):
 
 CCompetitor::CCompetitor( double split_ratio, std::size_t random_state,
                           std::size_t categorical_max, std::size_t difference,
+                          std::size_t rule_max_size, std::size_t ruleset_max_size,
                           bool prune_rules, std::size_t n_threads,
                           const std::string & pruning_metric ):
     CRuleLearner( split_ratio, random_state, categorical_max, difference,
+                  rule_max_size, ruleset_max_size,
                   prune_rules, n_threads, pruning_metric ){
 }
 
@@ -1035,7 +1046,7 @@ CRuleset CCompetitor::fit( const std::vector<std::vector<double>> & X,
   // rule description length
   double RDL = 0;
 
-  while( ! pos.empty() ){
+  while( ! pos.empty() && ruleset.size() < m_ruleset_max_size ){
 
     #ifdef __verbose__
       __logger.log( "Pos: " + std::to_string( pos.size() ) + ", Neg: " +
