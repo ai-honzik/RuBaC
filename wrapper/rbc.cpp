@@ -122,6 +122,7 @@ PYBIND11_MODULE( rbc, m ){
     .def("size", &CRuleset::size)
     .def("covered_indices", &CRuleset::covered_indices)
     .def("not_covered_indices", &CRuleset::not_covered_indices)
+    .def("covered_counts", &CRuleset::covered_counts)
     .def("__str__", &CRuleset::to_string)
     .def("__setitem__", [](CRuleset & self, std::size_t i, const CRule & value){ self[i] = value; })
     .def("__getitem__", static_cast<const CRule & (CRuleset::*)(std::size_t) const>(&CRuleset::operator[]))

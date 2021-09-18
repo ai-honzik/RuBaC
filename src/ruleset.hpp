@@ -240,6 +240,9 @@ class CRuleset{
     std::vector<std::size_t> not_covered_indices(
         const std::vector<std::vector<double>> & data,
         const std::vector<std::size_t> & input_indices ) const;
+    std::vector<std::size_t> covered_counts(
+        const std::vector<std::vector<double>> & data,
+        const std::vector<std::size_t> & input_indices ) const;
     friend std::ostream & operator<<( std::ostream & out,
                                       const CRuleset & src );
 

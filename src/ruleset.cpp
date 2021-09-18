@@ -666,6 +666,24 @@ std::vector<std::size_t> CRuleset::not_covered_indices(
 
   return indices;
 }
+
+std::vector<std::size_t> CRuleset::covered_counts(
+    const std::vector<std::vector<double>> & data,
+    const std::vector<std::size_t> & input_indices ) const{
+
+  std::vector<std::size_t> counts;
+  std::vector<std::size_t> indices = input_indices;
+  
+  for( const auto & r: m_rules ){
+    std::size_t curr_size = indices.size();  
+    indices = r.not_covered_indices( data, indices );
+    curr_size -= indices.size();
+    counts.push_back( curr_size );
+  }
+
+  return counts;
+}
+
 std::ostream & operator<<( std::ostream & out, const CRuleset & src ){
   out << src.to_string();
   return out;
