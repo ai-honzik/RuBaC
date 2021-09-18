@@ -82,6 +82,7 @@ PYBIND11_MODULE( rbc, m ){
     .def("size", &CRule::size)
     .def("covered_indices", &CRule::covered_indices)
     .def("not_covered_indices", &CRule::not_covered_indices)
+    .def("learned_order", &CRule::learned_order)
     .def("__str__", &CRule::to_string)
     .def("__eq__", &CRule::operator==)
     .def("__setitem__", [](CRule & self, std::size_t i, const CCondition & value){ self[i] = value; })
