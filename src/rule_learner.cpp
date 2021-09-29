@@ -407,6 +407,10 @@ void CRuleLearner::set_pruning_metric( const std::string & metric ){
     m_pruning_metric = IREP_pruning_metric;
   else if( metric == "RIPPER_default" )
     m_pruning_metric = RIPPER_pruning_metric;
+  else if( metric == "RIPPER_impr" )
+    m_pruning_metric = RIPPER_impr_pruning_metric;
+  else if( metric == "RIPPER_sqrt" )
+    m_pruning_metric = RIPPER_sqrt_pruning_metric;
   else
     throw std::runtime_error( "Invalid pruning metric!" );
 }
