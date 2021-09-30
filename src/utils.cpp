@@ -106,4 +106,17 @@ double RIPPER_sqrt_pruning_metric( const std::vector<std::vector<double>> & X,
   double ret_val = (double)( p - n ) / ( sqrt( p ) + sqrt( n ) + 1 );
   return ret_val;
 }
+
+double saddle_pruning_metric( const std::vector<std::vector<double>> & X,
+                              const CRule & rule,
+                              const std::vector<std::size_t> & pos_prune,
+                              const std::vector<std::size_t> & neg_prune ){
+  long long int p,n;
+  // TODO safe typecast?
+  p = (long long int)rule.covered_indices( X, pos_prune ).size();
+  n = (long long int)rule.covered_indices( X, neg_prune ).size();
+
+  double ret_val = (double)( p*p - n*n );
+  return ret_val;
+}
 #endif /*__utilscpp__*/

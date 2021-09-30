@@ -38,6 +38,11 @@ double RIPPER_sqrt_pruning_metric( const std::vector<std::vector<double>> & X,
                                    const CRule & rule,
                                    const std::vector<std::size_t> & pos_prune,
                                    const std::vector<std::size_t> & neg_prune );
+/** Calculate the saddle pruning metric. */
+double saddle_pruning_metric( const std::vector<std::vector<double>> & X,
+                              const CRule & rule,
+                              const std::vector<std::size_t> & pos_prune,
+                              const std::vector<std::size_t> & neg_prune );
 
 /**
  * @in: vector v
